@@ -137,7 +137,6 @@ chronos/common/          # Frozen array loader and shared contracts
 docs/METHODOLOGY.md      # Detailed dataset-construction report
 docs/SCHEMA.md           # Final file specifications
 tools/inventory.py       # Local dataset and cache inventory
-NOTICE.md                # Third-party source acknowledgements
 ```
 
 ## 🔗 Using the dataset
