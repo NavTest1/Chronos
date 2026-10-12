@@ -1,212 +1,44 @@
-<div align="center">
-  <img src="assets/banner.svg" alt="Chronos SG 2026 Banner" width="100%" />
+# 🗺️ Chronos-SG-2026 Dataset v1.0.0
 
-  <h1>Chronos-SG-2026 Dataset</h1>
-  <p><strong>Dataset artifact for secure time-window-aware semi-constrained navigation experiments.</strong></p>
+We are pleased to release **Chronos-SG-2026**, a time-dependent road-network dataset constructed for evaluating *Chronos: Secure Semi-Constrained Navigation on Dynamic Road Networks with Multiple Time Restrictions*.
 
-  <p>
-    <a href="https://github.com/NavTest1/Chronos/releases/tag/v1.0.0"><img alt="release" src="https://img.shields.io/badge/Release-v1.0.0-2563eb?style=for-the-badge"></a>
-    <img alt="region" src="https://img.shields.io/badge/Region-Singapore-0f766e?style=for-the-badge">
-    <img alt="content" src="https://img.shields.io/badge/Content-Road%20Graph%20%7C%20Traffic%20%7C%20Queries-7c3aed?style=for-the-badge">
-  </p>
-</div>
+The dataset integrates Singapore's real-world road topology with time-varying traffic information, providing a foundation for research on dynamic road-network preprocessing, time-dependent routing, and multi-stop navigation with temporal constraints.
 
----
+## 📊 Dataset Overview
 
-## Overview
+| Property | Description |
+|---|---|
+| Geographic Region | Singapore |
+| Road Network | Directed road graph |
+| Number of Nodes | 24,206 |
+| Number of Directed Edges | 46,070 |
+| Temporal Resolution | 15 minutes |
+| Daily Time Intervals | 96 |
+| Road Network Source | OpenStreetMap |
+| Traffic Data Source | LTA DataMall |
 
-This repository contains the **dataset construction and packaging artifact** for the Chronos project.
+## 📦 Dataset Download
 
-It is organized around the Chronos-SG-2026 dataset, which includes:
+**`data.zip`** — The Chronos-SG-2026 dataset package.
 
-- the source road-network inputs,
-- preprocessing and validation code,
-- packaging utilities for release creation,
-- metadata and schema documentation, and
-- helper scripts for inventory and integrity checking.
+Download and extract the archive to access the dataset files.
 
-> [!IMPORTANT]
-> The public dataset package is distributed via the official GitHub release page:  
-> **https://github.com/NavTest1/Chronos/releases/tag/v1.0.0**
+## 🔬 Research Applications
 
----
+The dataset is designed to support research on:
 
-## Table of Contents
+- Time-dependent shortest-path computation
+- Privacy-preserving road-network navigation
+- Multi-stop routing with time-window constraints
+- Road-network preprocessing and candidate-path construction
+- Dynamic traffic analysis and navigation evaluation
 
-- [Highlights](#highlights)
-- [Repository Layout](#repository-layout)
-- [Dataset Methodology](#dataset-methodology)
-- [Quick Start](#quick-start)
-- [Release Packaging](#release-packaging)
-- [Files Included in the Public Dataset](#files-included-in-the-public-dataset)
-- [Citation](#citation)
+## 📖 Documentation
 
----
+For dataset construction methodology, file organization, and experimental reproduction instructions, please refer to the repository README and the accompanying Chronos experimental artifact.
 
-## Highlights
+## 📜 Data Sources
 
-<table>
-<tr>
-<td width="50%" valign="top">
+Road-network topology is derived from OpenStreetMap, and traffic information is based on Singapore Land Transport Authority (LTA) DataMall observations.
 
-### 🗺️ Included in this repository
-- Dataset construction utilities
-- Validation helpers
-- Inventory scripts
-- Release packaging helpers
-- Documentation for methodology and schema
-
-</td>
-<td width="50%" valign="top">
-
-### ✨ Presentation goals
-- Clear GitHub landing page
-- Release-oriented organization
-- Public-facing methodology summary
-- Easy linkage to the dataset release
-- Minimal setup friction for artifact reviewers
-
-</td>
-</tr>
-</table>
-
----
-
-## Repository Layout
-
-```text
-Chronos-SG-2026-Dataset/
-├── dataset/                    # Dataset build and packaging entry points
-├── chronos/init/               # Dataset validation and coordinate handling
-├── chronos/preprocess/         # Preprocessing utilities
-├── tools/                      # Inventory helpers
-├── docs/                       # Methodology and schema notes
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Dataset Methodology
-
-```mermaid
-flowchart LR
-    A[Raw road network inputs] --> B[Coordinate normalization]
-    B --> C[Road graph construction]
-    C --> D[Temporal traffic attachment]
-    D --> E[Processed dataset generation]
-    E --> F[Validation and release packaging]
-```
-
-The dataset artifact is designed to support the Chronos experimental workflow in a reproducible way. At a high level, the pipeline:
-
-1. organizes raw road-network inputs,
-2. normalizes spatial coordinates,
-3. constructs processed road-graph artifacts,
-4. attaches temporal traffic information,
-5. prepares benchmark query files, and
-6. validates the resulting dataset before release packaging.
-
-For more details, see:
-
-- [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md)
-- [`docs/SCHEMA.md`](docs/SCHEMA.md)
-
----
-
-## Quick Start
-
-### Install dependencies
-
-```bash
-python -m venv .venv
-. .venv/bin/activate        # Linux / macOS
-# .venv\Scripts\activate    # Windows PowerShell
-pip install -r requirements.txt
-```
-
-### Inspect repository contents
-
-```bash
-python -m tools.inventory
-```
-
-### Run dataset build entry
-
-```bash
-python -m dataset.build --help
-```
-
-### Validate dataset structure
-
-```bash
-python -m chronos.init.validate_dataset --help
-```
-
----
-
-## Release Packaging
-
-The public release package is published at:
-
-**https://github.com/NavTest1/Chronos/releases/tag/v1.0.0**
-
-Typical packaging workflow:
-
-```mermaid
-flowchart TD
-    A[Prepare validated dataset tree] --> B[Create release package]
-    B --> C[Upload data.zip to GitHub Release]
-    C --> D[Document extraction and integrity instructions]
-```
-
-Create a release package locally:
-
-```bash
-python -m dataset.package_release --help
-```
-
-List the artifact inventory:
-
-```bash
-powershell -ExecutionPolicy Bypass -File run_inventory.ps1
-```
-
----
-
-## Files Included in the Public Dataset
-
-The public dataset release is expected to restore a structure like:
-
-```text
-data/
-└── singapore/
-    ├── raw/
-    ├── processed/
-    ├── queries/
-    ├── traffic/
-    └── README.md
-```
-
-This structure is the expected input for the experiment repository.
-
----
-
-## Citation
-
-If you use the dataset in academic work, please cite the corresponding Chronos paper.
-
-```bibtex
-@misc{chronossg2026,
-  title={Chronos-SG-2026 Dataset},
-  author={Anonymous},
-  year={2026},
-  note={Dataset artifact for Chronos experiments}
-}
-```
-
----
-
-<div align="center">
-  <sub>Designed for clean public release and reproducible dataset distribution.</sub>
-</div>
+Please acknowledge the original data providers and comply with their applicable data-use and redistribution terms when using this dataset.
