@@ -1,44 +1,226 @@
-# 🗺️ Chronos-SG-2026 Dataset v1.0.0
+# 🔐 Chronos — Experiments & Reproduction
 
-We are pleased to release **Chronos-SG-2026**, a time-dependent road-network dataset constructed for evaluating *Chronos: Secure Semi-Constrained Navigation on Dynamic Road Networks with Multiple Time Restrictions*.
+**Secure semi-constrained navigation on dynamic road networks with multiple time restrictions**
 
-The dataset integrates Singapore's real-world road topology with time-varying traffic information, providing a foundation for research on dynamic road-network preprocessing, time-dependent routing, and multi-stop navigation with temporal constraints.
+[![Python](https://img.shields.io/badge/Python-3.11-blue)](https://www.python.org/)
+![Platform](https://img.shields.io/badge/Platform-Windows%2011-1f6feb)
+![Evaluation](https://img.shields.io/badge/Evaluation-IEEE%20TIFS%20artifact-green)
 
-## 📊 Dataset Overview
+This repository publishes the **core Chronos implementation** and the **paper evaluation workflow**: Singapore preprocessing, protected offline index generation, secure online navigation, time-window sensitivity, path quality, road incidents and updates, comparative runs, and ablations.
 
-| Property | Description |
-|---|---|
-| Geographic Region | Singapore |
-| Road Network | Directed road graph |
-| Number of Nodes | 24,206 |
-| Number of Directed Edges | 46,070 |
-| Temporal Resolution | 15 minutes |
-| Daily Time Intervals | 96 |
-| Road Network Source | OpenStreetMap |
-| Traffic Data Source | LTA DataMall |
+The companion **Chronos-SG-2026 Dataset** package provides dataset construction, validation, and release packaging. The frozen dataset archive is published as [Chronos Dataset Release v1.0.0](https://github.com/NavTest1/Chronos/releases/tag/v1.0.0). Download the attached `data.zip` before running the full-scale experiments.
 
-## 📦 Dataset Download
+## 📋 1. System requirements
 
-**`data.zip`** — The Chronos-SG-2026 dataset package.
+| Component | Recommended study configuration |
+| :-- | :-- |
+| OS | Windows 11, 64-bit |
+| Python | **3.11**, 64-bit |
+| CPU | Multicore x86-64 (evaluation host: Intel Core i7-1165G7) |
+| Memory | 32 GB RAM (study host) |
+| Native toolchain | Visual Studio 2022 C++ Build Tools / MSVC |
+| Dataset | Chronos-SG-2026 processed release |
+| Offline storage | Sufficient disk capacity for generated stage caches |
 
-Download and extract the archive to access the dataset files.
+**Cryptographic components.** The implementation uses two-party secure computation based on protected sharing, garbled circuits and oblivious transfer; the security model assumes two non-colluding semi-honest cloud servers. Native extensions are compiled from included C/C++ source files.
 
-## 🔬 Research Applications
+### 1.1 Install
 
-The dataset is designed to support research on:
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
 
-- Time-dependent shortest-path computation
-- Privacy-preserving road-network navigation
-- Multi-stop routing with time-window constraints
-- Road-network preprocessing and candidate-path construction
-- Dynamic traffic analysis and navigation evaluation
+Run the central menu to discover the available experiments:
 
-## 📖 Documentation
+```powershell
+python -m artifact_experiments.run --list
+python -m tools.check_inputs
+```
 
-For dataset construction methodology, file organization, and experimental reproduction instructions, please refer to the repository README and the accompanying Chronos experimental artifact.
+`check_inputs` prints the configured input paths and saves `reports/experiment_input_check.json`. It never scans your large cache recursively.
 
-## 📜 Data Sources
+## 🗺️ 2. Download and prepare the road dataset
 
-Road-network topology is derived from OpenStreetMap, and traffic information is based on Singapore Land Transport Authority (LTA) DataMall observations.
+**Official dataset release:** [Chronos-SG-2026 v1.0.0 on GitHub Releases](https://github.com/NavTest1/Chronos/releases/tag/v1.0.0)
 
-Please acknowledge the original data providers and comply with their applicable data-use and redistribution terms when using this dataset.
+1. Open the release page and download the asset named **`data.zip`**.
+2. Extract the archive locally. The downloaded archive may include parent directories; identify the folder containing `dataset_manifest.json` and the processed `.npy` arrays before moving anything.
+3. Place the processed dataset under `data/singapore/processed/full/` in this experimental repository, preserving the original dataset manifest and file names.
+4. Confirm the final paths before starting any offline preprocessing or secure experiments.
+
+PowerShell example (run at the repository root after saving `data.zip` to your Downloads folder):
+
+```powershell
+$archive = Join-Path $env:USERPROFILE 'Downloads\data.zip'
+$staging = Join-Path (Get-Location) '_dataset_release_extract'
+Expand-Archive -LiteralPath $archive -DestinationPath $staging -Force
+Get-ChildItem -LiteralPath $staging -Recurse -File -Filter dataset_manifest.json |
+  Select-Object -ExpandProperty FullName
+```
+
+Then copy the **contents of the processed dataset directory** discovered above into `data/singapore/processed/full/`. The required final structure is:
+
+```text
+data/singapore/processed/full/
+  dataset_manifest.json
+  sg_travel_time.npy
+  sg_speed.npy
+  sg_edge_index.npy
+  sg_node_ids.npy
+  sg_edge_metadata.parquet
+  sg_time_buckets.csv
+  sg_node_coordinates.npy
+  ...
+```
+
+Verify the inputs:
+
+```powershell
+python -m tools.check_inputs
+```
+
+The frozen study dataset has **24,206 nodes, 46,070 directed edges, 96 daily 15-minute bins and EPSG:3414 coordinates**. Keep the released manifest and recorded hashes unchanged. The large query-independent Offline Store is generated by the subsequent preprocessing steps; it is **not** the `data.zip` dataset download.
+
+## 🚀 3. End-to-end reproduction workflow
+
+```text
+ Processed dataset
+        │
+        ▼
+  Offline preprocessing ──► Partitions / anchors / candidate paths
+        │
+        ▼
+  Protected index and query-independent Offline Store
+        │
+        ▼
+  Formal query matrix / secure Search / Dec
+        │
+   ┌────┼──────────┬────────────┬─────────────┐
+   ▼    ▼          ▼            ▼             ▼
+ Time  Quality   Incidents    Baselines    Ablation
+ & TW  PDR/HPS/  & Updates    (matched Q)  SafeAlong/
+       TTS                                 UNext
+```
+
+The script wrapper passes the original CLI flags directly to the published implementation and keeps its algorithmic behavior unchanged. Outputs are generally written beneath `artifacts/singapore/` by the corresponding experiment.
+
+### Step 1 — Inspect preprocessing and build plan
+
+```powershell
+python -m artifact_experiments.run offline-index -- --full --validate-only
+```
+
+### Step 2 — Build the directed-road offline index
+
+```powershell
+python -m artifact_experiments.run offline-index -- --full --resume --workers 1
+```
+
+This stage organizes the network into partitions, selects boundary/center/coverage anchors, constructs bounded candidate segments, and prepares the persistent index structures. Its stage-specific inputs and cache paths are configured in `configs/singapore/tifs_v7.json`.
+
+### Step 3 — Construct the query-independent Offline Store
+
+```powershell
+python -m artifact_experiments.run offline-store -- --verify-hashes
+```
+
+The secure runtime consumes the protected representation and the query-independent prepared records. Depending on your environment, adjust workers via `--segment-workers` and `--backbone-workers`; see `--help` for supported settings.
+
+### Step 4 — Prepare the formal query matrix
+
+```powershell
+python -m artifact_experiments.run formal-v4 -- --prepare
+```
+
+The formal evaluation varies the intermediate-stop count **k = 0–10**, number of time-window-constrained stops, and time-window widths/positions. The complete frozen study includes **440 scenarios**.
+
+### Step 5 — Run navigation efficiency / time-window sensitivity (E1–E5)
+
+```powershell
+python -m artifact_experiments.run formal-v4 -- --smoke
+python -m artifact_experiments.run formal-v4 -- --paper-full
+```
+
+Use `--run-id` to select an output namespace and `--output-root` to direct result files to a larger disk. The formal runner measures secure navigation performance, query/workspace timing, and communication using the configured experiment plan.
+
+### Step 6 — Compute navigation quality (PDR, HPS, TTS)
+
+```powershell
+python -m artifact_experiments.run quality -- --paper-main-final-b3
+```
+
+Path quality uses the corresponding exact reference inside the same query workspace. PDR (path dilation) and TTS (travel-time stretch) approach 1 for close agreement; HPS combines grid and length similarity.
+
+### Step 7 — Transient incidents and persistent updates
+
+```powershell
+python -m artifact_experiments.run incident-update -- --smoke
+python -m artifact_experiments.run incident-update
+```
+
+These experiments inject temporary road events and measure incremental handling of persistent road changes with authenticated road-data versions.
+
+### Step 8 — Matched-query comparison with Hermes / Gaia
+
+```powershell
+python -m artifact_experiments.run baseline-chronos -- --help
+python -m artifact_experiments.run baseline-chronos
+```
+
+Chronos runs are matched by **dataset, source, destination, stops, departure time, and random seed**. The `baselines/` source includes the Chronos-side common-query adapter; Hermes and Gaia outputs must be obtained by running their respective implementations under the same scenario manifest. Compare the resulting navigation time values only after verifying matched scenario identifiers and measurement units.
+
+### Step 9 — Optimization ablation
+
+```powershell
+python -m artifact_experiments.run ablation -- --audit-only
+python -m artifact_experiments.run ablation
+```
+
+This stage compares the full Chronos implementation with `NO_SAFEALONG` and `NO_UNEXT` variants under the fixed set of test configurations.
+
+## 📊 4. Offline preprocessing evaluation (F13 / Table II)
+
+The preprocessing evaluation is separate from secure online query timing:
+
+```powershell
+# V2: dataset, partitions, anchors, static candidate validation
+python -m artifact_experiments.run preprocess-v2 -- --mode selftest
+python -m artifact_experiments.run preprocess-v2 -- --mode full
+
+# V3: directory-construction comparison
+python -m artifact_experiments.run preprocess-partitions -- --mode full
+
+# V4: all directory endpoint pairs, static Halo-2 candidate index
+python -m artifact_experiments.run preprocess-full-index -- --mode full
+
+# Floyd-Warshall static distance matrix comparisons
+python -m artifact_experiments.run floyd-small-retest -- --mode full --repeats 3
+python -m artifact_experiments.run floyd-8000 -- --mode full
+```
+
+The figure uses anchor reachability coverage and **120 segment-level anchor pairs** for comparing static candidate distances with global static shortest distances. At the full scale, V4 processes **232,873 directory endpoint pairs**. Floyd-Warshall computes a different, full all-vertex-pairs distance representation; the table documents their respective preprocessing footprint and scope.
+
+## 📁 5. Repository structure
+
+```text
+artifact_experiments/       # One CLI for named experiment groups
+chronos/                    # Secure runtime, navigation, and offline methods
+experiments/chronos_tifs/   # Paper scenario/runners, baselines, quality
+scripts/                    # Full-Singapore offline index/store runners
+configs/singapore/          # Offline build configuration
+preprocessing_final_inputs/# F13 frozen analysis inputs
+results/reference/          # Selected published result tables
+docs/EXPERIMENTS.md         # Metrics, outputs, and figure mapping
+tools/check_inputs.py       # Environment and dataset directory check
+```
+
+## 🧾 6. Results and reproducibility
+
+Selected existing result CSVs and preprocessing audit files reside in `results/reference/`. Fresh experiment runs create their own output directories; they never need to overwrite the reference files. The reference inputs and the frozen dataset/version identifiers help confirm reproducible comparisons.
+
+The paper's timing values depend on matching data and configuration, native secure components, and the hardware/runtime environment. Commands that generate an index or perform a timed run may require significant execution time and storage.
+
+For dataset-source acknowledgements, refer to the companion **Chronos-SG-2026 Dataset** repository. See [Experiment guide](docs/EXPERIMENTS.md) for the scope and output mapping.
